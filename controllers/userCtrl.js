@@ -71,13 +71,27 @@ const handleRefreshToken = asyncHandler(async (req, res) => {
       throw new Error("Refresh token does not matched");
     }
     const accessToken = generateToken(user?._id);
-    console.log(user, decoded);
     res.json({ accessToken });
   });
 });
 
 // Logout functionality
-const logout = asyncHandler(async (req, res) => {});
+const logoutUser = asyncHandler(async (req, res) => {
+  const cookies = req.cookies;
+  if (!cookies?.refreshToken) {
+    throw new Error("No refresh token in cookies");
+  }
+  const refreshToken = cookies.refreshToken;
+  const user = await User.findOne({ refreshToken });
+  if (user) {
+    await User.findOneAndUpdate({ refreshToken }, { refreshToken: "" });
+  }
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: true,
+  });
+  res.sendStatus(204);
+});
 
 // Update a user
 const updateUser = asyncHandler(async (req, res) => {
@@ -186,6 +200,7 @@ const unblockUser = asyncHandler(async (req, res) => {
 module.exports = {
   createUser,
   loginUser,
+  logoutUser,
   getAllUsers,
   getUser,
   deleteUser,
@@ -193,5 +208,4 @@ module.exports = {
   blockUser,
   unblockUser,
   handleRefreshToken,
-  logout,
 };
